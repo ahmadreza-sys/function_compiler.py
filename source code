@@ -1,0 +1,139 @@
+import re
+
+class FunctionCompiler:
+
+    def __init__(self, source_code):
+        self.source_code = source_code
+
+    # ==================================
+    # LEXICAL ANALYSIS
+    # ==================================
+    def lexical_analysis(self):
+
+        token_pattern = r'int|float|char|return|[A-Za-z_]\w*|\+|\(|\)|\{|\}|,|;'
+
+        raw_tokens = re.findall(token_pattern, self.source_code)
+
+        tokens = []
+
+        keywords = ["int", "float", "char", "return"]
+
+        for token in raw_tokens:
+            if token in keywords:
+                tokens.append(("KEYWORD", token))
+            elif token in ['(', ')', '{', '}', ',', ';', '+']:
+                tokens.append(("SYMBOL", token))
+            else:
+                tokens.append(("IDENTIFIER", token))
+
+        return tokens
+
+    # ==================================
+    # SYNTAX ANALYSIS (AST)
+    # ==================================
+    def syntax_analysis(self):
+
+        tokens = [t[1] for t in self.lexical_analysis()]
+
+        ast = {
+            "Function": {
+                "ReturnType": tokens[0],
+                "FunctionName": tokens[1],
+                "Parameters": [
+                    {
+                        "Type": tokens[3],
+                        "Name": tokens[4]
+                    },
+                    {
+                        "Type": tokens[6],
+                        "Name": tokens[7]
+                    }
+                ],
+                "Return": {
+                    "Left": tokens[11],
+                    "Operator": tokens[12],
+                    "Right": tokens[13]
+                }
+            }
+        }
+
+        return ast
+
+    # ==================================
+    # SEMANTIC ANALYSIS
+    # ==================================
+    def semantic_analysis(self):
+
+        ast = self.syntax_analysis()
+
+        params = ast["Function"]["Parameters"]
+
+        names = [p["Name"] for p in params]
+
+        if len(names) != len(set(names)):
+            return "Error: Nama parameter duplikat"
+
+        if ast["Function"]["ReturnType"] not in ["int", "float", "char"]:
+            return "Error: Return type tidak valid"
+
+        return "Semantic Analysis Berhasil"
+
+    # ==================================
+    # THREE ADDRESS CODE
+    # ==================================
+    def generate_TAC(self):
+
+        ast = self.syntax_analysis()
+
+        left = ast["Function"]["Return"]["Left"]
+        right = ast["Function"]["Return"]["Right"]
+
+        tac = []
+
+        tac.append(f"BeginFunc {ast['Function']['FunctionName']}")
+        tac.append(f"t1 = {left} + {right}")
+        tac.append("return t1")
+        tac.append("EndFunc")
+
+        return tac
+
+
+# ==================================
+# SOURCE CODE
+# ==================================
+
+source = """
+int tambah(int a, int b){
+    return a + b;
+}
+"""
+
+compiler = FunctionCompiler(source)
+
+print("========== SOURCE CODE ==========")
+print(source)
+
+print("\n========== LEXICAL ANALYSIS ==========")
+
+tokens = compiler.lexical_analysis()
+
+for token in tokens:
+    print(token)
+
+print("\n========== ABSTRACT SYNTAX TREE ==========")
+
+ast = compiler.syntax_analysis()
+
+from pprint import pprint
+pprint(ast)
+
+print("\n========== SEMANTIC ANALYSIS ==========")
+
+print(compiler.semantic_analysis())
+
+print("\n========== THREE ADDRESS CODE ==========")
+
+for line in compiler.generate_TAC():
+    print(line)
+    
+    
